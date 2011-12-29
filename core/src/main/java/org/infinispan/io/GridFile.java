@@ -45,6 +45,7 @@ import static org.infinispan.context.Flag.FORCE_SYNCHRONOUS;
  * Subclass of File to iterate through directories and files in a grid
  *
  * @author Bela Ban
+ * @author Marko Luksa
  */
 public class GridFile extends File {
    private static final long serialVersionUID = -6729548421029004260L;
@@ -110,14 +111,18 @@ public class GridFile extends File {
 
    @Override
    public long length() {
-      Metadata metadata = metadataCache.get(getPath());
+      Metadata metadata = getMetadata();
       if (metadata != null)
          return metadata.length;
       return 0;
    }
 
+   private Metadata getMetadata() {
+      return metadataCache.get(getPath());
+   }
+
    void setLength(int new_length) {
-      Metadata metadata = metadataCache.get(getPath());
+      Metadata metadata = getMetadata();
       if (metadata != null) {
          metadata.length = new_length;
          metadata.setModificationTime(System.currentTimeMillis());
@@ -200,7 +205,7 @@ public class GridFile extends File {
 
    @Override
    public boolean exists() {
-      return metadataCache.get(getPath()) != null;
+      return getMetadata() != null;
    }
 
    @Override
@@ -230,18 +235,18 @@ public class GridFile extends File {
 
    @Override
    public boolean isDirectory() {
-      Metadata val = metadataCache.get(getPath());
+      Metadata val = getMetadata();
       return val == null || val.isDirectory();
    }
 
    @Override
    public boolean isFile() {
-      Metadata val = metadataCache.get(getPath());
+      Metadata val = getMetadata();
       return val == null || val.isFile();
    }
 
    protected void initMetadata() {
-      Metadata metadata = metadataCache.get(getPath());
+      Metadata metadata = getMetadata();
       if (metadata != null)
          this.chunk_size = metadata.getChunkSize();
    }
@@ -412,7 +417,7 @@ public class GridFile extends File {
       }
 
       public String toString() {
-         boolean is_file = Util.isFlagSet(flags, FILE);
+         boolean is_file = isFile();
          StringBuilder sb = new StringBuilder();
          sb.append(getType());
          if (is_file)
@@ -422,9 +427,9 @@ public class GridFile extends File {
       }
 
       private String getType() {
-         if (Util.isFlagSet(flags, FILE))
+         if (isFile())
             return "file";
-         if (Util.isFlagSet(flags, DIR))
+         if (isDirectory())
             return "dir";
          return "n/a";
       }

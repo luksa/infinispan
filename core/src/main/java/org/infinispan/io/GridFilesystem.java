@@ -116,6 +116,45 @@ public class GridFilesystem {
       return pathname != null ? getInput(pathname.getPath()) : null;
    }
 
+   public ReadableGridFileChannel getReadableChannel(String pathName) throws FileNotFoundException {
+      GridFile file = (GridFile) getFile(pathName);
+      if (!file.exists())
+         throw new FileNotFoundException(pathName);
+      return new ReadableGridFileChannel(file, data);
+   }
+
+    public WritableGridFileChannel getWritableChannel(String pathName) throws IOException {
+        return getWritableChannel(pathName, false);
+    }
+
+    public WritableGridFileChannel getWritableChannel(String pathName, boolean append) throws IOException {
+        return getWritableChannel(pathName, append, default_chunk_size);
+    }
+
+    public WritableGridFileChannel getWritableChannel(String pathName, boolean append, int chunkSize) throws IOException {
+        GridFile file = (GridFile) getFile(pathName, chunkSize);
+        if (!file.createNewFile())
+           throw new IOException("creation of " + pathName + " failed");
+
+        if (file.isDirectory()) {
+            throw new IOException(pathName + " is a directory.");
+        }
+        
+        return new WritableGridFileChannel(file, data, append, chunkSize);
+    }
+
+    public GridFileChannel getChannel(File file) throws IOException {
+        return getChannel(file.getPath());
+    }
+
+    public GridFileChannel getChannel(String pathname) throws IOException {
+        GridFile file = (GridFile) getFile(pathname);
+        boolean fileCreated = file.createNewFile();
+        if (!fileCreated) {
+            throw new IOException("File was not created.");
+        }
+        return new GridFileChannel(file, data, default_chunk_size);
+    }
 
    public void remove(String path, boolean synchronous) {
       if (path == null)
