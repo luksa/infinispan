@@ -53,6 +53,7 @@ import java.util.List;
  *
  * @author <a href="mailto:manik@jboss.org">Manik Surtani (manik@jboss.org)</a>
  * @author Mircea.Markus@jboss.com
+ * @author mluksa@redhat.com
  * @since 4.0
  */
 @DefaultFactoryFor(classes = InterceptorChain.class)
@@ -100,10 +101,15 @@ public class InterceptorChainFactory extends AbstractNamedCacheComponentFactory 
          first = createInterceptor(new InvocationContextInterceptor(), InvocationContextInterceptor.class);
       }
 
-      InterceptorChain interceptorChain = new InterceptorChain(first, componentRegistry.getComponentMetadataRepo());
+      // the calls to createInterceptor() above may have created and registered a new InterceptorChain in the registry,
+      // therefore we need to use the registered IC instead of creating a new one
+      InterceptorChain interceptorChain = componentRegistry.getComponent(InterceptorChain.class);
+      if (interceptorChain == null) {
+         interceptorChain = new InterceptorChain(first, componentRegistry.getComponentMetadataRepo());
 
-      // add the interceptor chain to the registry first, since some interceptors may ask for it.
-      componentRegistry.registerComponent(interceptorChain, InterceptorChain.class);
+         // add the interceptor chain to the registry first, since some interceptors may ask for it.
+         componentRegistry.registerComponent(interceptorChain, InterceptorChain.class);
+      }
 
       // add marshallable check interceptor for situations where we want to figure out before marshalling
       if (isUsingMarshalledValues(configuration) || configuration.clustering().async().asyncMarshalling()
